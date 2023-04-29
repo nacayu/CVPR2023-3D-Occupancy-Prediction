@@ -181,9 +181,9 @@ class BEVFormerOccHead(BaseModule):
             mask_camera=mask_camera.reshape(-1)
             num_total_samples=mask_camera.sum()
             loss_occ=self.loss_occ(preds,voxel_semantics,mask_camera, avg_factor=num_total_samples)
-        else:
-            voxel_semantics = voxel_semantics.reshape(-1)
-            preds = preds.reshape(-1, self.num_classes)
+        else:   # default not use mask
+            voxel_semantics = voxel_semantics.reshape(-1)   # [bs * w * h * pillar_h]
+            preds = preds.reshape(-1, self.num_classes)     # [bs, w, h, pillar_h, 18] -> [bs * w * h * pillar_h, 18]
             loss_occ = self.loss_occ(preds, voxel_semantics,)
         return loss_occ
 

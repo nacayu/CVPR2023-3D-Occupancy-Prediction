@@ -105,7 +105,7 @@ class TransformerOcc(BaseModule):
                 )
         else:
             use_bias_3d = norm_cfg_3d is None
-
+            # input of decoder: [bs, middle_dims, pillar_h, h, w]
             self.middle_dims=self.embed_dims//pillar_h
             self.decoder = nn.Sequential(
                 ConvModule(
@@ -335,10 +335,10 @@ class TransformerOcc(BaseModule):
             **kwargs)  # bev_embed shape: bs, bev_h*bev_w, embed_dims
 
         bs = mlvl_feats[0].size(0)
-        bev_embed = bev_embed.permute(0, 2, 1).view(bs, -1, bev_h, bev_w)
-        if self.use_3d:
-            outputs=self.decoder(bev_embed.view(bs,-1,self.pillar_h,bev_h, bev_w))
-            outputs=outputs.permute(0,4,3,2,1)
+        bev_embed = bev_embed.permute(0, 2, 1).view(bs, -1, bev_h, bev_w)   # [bs, embed_dims, h, w]
+        if self.use_3d: # 3d pillar
+            outputs=self.decoder(bev_embed.view(bs,-1,self.pillar_h,bev_h, bev_w))      # [bs, 16, pillar_h, h, w]
+            outputs=outputs.permute(0,4,3,2,1)  # [bs, w, h, pillar_h, 16]
 
         elif self.use_conv:
 
@@ -347,6 +347,6 @@ class TransformerOcc(BaseModule):
         else:
             outputs = self.decoder(bev_embed.permute(0,2,3,1))
             outputs = outputs.view(bs, bev_h, bev_w,self.pillar_h,self.out_dim)
-        outputs = self.predicter(outputs)
+        outputs = self.predicter(outputs)   # [bs, w, h, pillar_h, 18]
         # print('outputs',type(outputs))
         return bev_embed, outputs

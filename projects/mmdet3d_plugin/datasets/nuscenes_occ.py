@@ -59,20 +59,23 @@ class NuSceneOcc(NuScenesDataset):
         Returns:
             dict: Training data dict of the corresponding index.
         """
-        queue = []
-        index_list = list(range(index - self.queue_length, index))
-        random.shuffle(index_list)
-        index_list = sorted(index_list[1:])
-        index_list.append(index)
-        for i in index_list:
-            i = max(0, i)
-            input_dict = self.get_data_info(i)
-            if input_dict is None:
-                return None
-            self.pre_pipeline(input_dict)
-            example = self.pipeline(input_dict)
-            queue.append(example)
-        return self.union2one(queue)
+        # queue = []
+        # index_list = list(range(index - self.queue_length, index))
+        # random.shuffle(index_list)
+        # index_list = sorted(index_list[1:])
+        # index_list.append(index)
+        # for i in index_list:
+        #     i = max(0, i)
+        #     input_dict = self.get_data_info(i)
+        #     if input_dict is None:
+        #         return None
+        #     self.pre_pipeline(input_dict)
+        #     example = self.pipeline(input_dict)
+        #     queue.append(example)
+        # return self.union2one(queue)
+        input_dict = self.get_data_info(index)
+        example = self.pipeline(input_dict)
+        return example
 
     def union2one(self, queue):
         imgs_list = [each['img'].data for each in queue]
@@ -242,11 +245,12 @@ class NuSceneOcc(NuScenesDataset):
                     save_path=os.path.join(show_dir,str(index).zfill(4))
                     np.savez_compressed(save_path,pred=occ_pred,gt=occ_gt,sample_token=sample_token)
 
-
+            # convert bevformer label(free voxels are 17) to surroundocc labels(free voxels are 0)
             gt_semantics = occ_gt['semantics']
+            gt_semantics[gt_semantics != 17] += 1
+            gt_semantics[gt_semantics == 17] = 0
             mask_lidar = occ_gt['mask_lidar'].astype(bool)
             mask_camera = occ_gt['mask_camera'].astype(bool)
-            # occ_pred = occ_pred
             self.occ_eval_metrics.add_batch(occ_pred, gt_semantics, mask_lidar, mask_camera)
             if self.eval_fscore:
                 self.fscore_eval_metrics.add_batch(occ_pred, gt_semantics, mask_lidar, mask_camera)
@@ -254,6 +258,5 @@ class NuSceneOcc(NuScenesDataset):
         self.occ_eval_metrics.count_miou()
         if self.eval_fscore:
             self.fscore_eval_metrics.count_fscore()
-
 
 

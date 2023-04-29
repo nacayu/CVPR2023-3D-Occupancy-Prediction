@@ -56,10 +56,10 @@ class Metric_mIoU():
                  use_lidar_mask=False,
                  use_image_mask=False,
                  ):
-        self.class_names = ['others','barrier', 'bicycle', 'bus', 'car', 'construction_vehicle',
+        self.class_names = ['free', 'others','barrier', 'bicycle', 'bus', 'car', 'construction_vehicle',
                             'motorcycle', 'pedestrian', 'traffic_cone', 'trailer', 'truck',
                             'driveable_surface', 'other_flat', 'sidewalk',
-                            'terrain', 'manmade', 'vegetation','free']
+                            'terrain', 'manmade', 'vegetation',]
         self.save_dir = save_dir
         self.use_lidar_mask = use_lidar_mask
         self.use_image_mask = use_image_mask

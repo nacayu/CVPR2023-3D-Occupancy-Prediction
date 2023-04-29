@@ -100,6 +100,8 @@ def parse_args():
 
 
 def main():
+    import sys
+    sys.path.append('/root/siton-tmp/Occupancy3D')
     args = parse_args()
 
     cfg = Config.fromfile(args.config)

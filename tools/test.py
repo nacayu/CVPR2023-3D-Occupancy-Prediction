@@ -15,6 +15,8 @@ from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,
                          wrap_fp16_model)
 from mmdet3d.datasets import build_dataset
+import sys
+sys.path.append("/home/ubuntu/naca/Occupancy3D")
 from projects.mmdet3d_plugin.datasets.builder import build_dataloader
 from mmdet3d.models import build_model
 from mmdet.apis import set_random_seed
@@ -22,6 +24,7 @@ from projects.mmdet3d_plugin.bevformer.apis.test import custom_multi_gpu_test
 from mmdet.datasets import replace_ImageToTensor
 import time
 import os.path as osp
+import numpy as np
 
 
 def parse_args():
@@ -226,9 +229,9 @@ def main():
         model.PALETTE = dataset.PALETTE
 
     if not distributed:
-        assert False
-        # model = MMDataParallel(model, device_ids=[0])
-        # outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
+        # assert False
+        model = MMDataParallel(model, device_ids=[0])
+        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
     else:
         model = MMDistributedDataParallel(
             model.cuda(),
@@ -261,6 +264,44 @@ def main():
 
             dataset.evaluate_miou(outputs,show_dir=args.show_dir, **eval_kwargs)
 
+def single_gpu_test(model,
+                    data_loader,
+                    show=False,
+                    out_dir=None,
+                    show_score_thr=0.3):
+    """Test model with single gpu.
+
+    This method tests model with single gpu and gives the 'show' option.
+    By setting ``show=True``, it saves the visualization results under
+    ``out_dir``.
+
+    Args:
+        model (nn.Module): Model to be tested.
+        data_loader (nn.Dataloader): Pytorch data loader.
+        show (bool): Whether to save viualization results.
+            Default: True.
+        out_dir (str): The path to save visualization results.
+            Default: None.
+
+    Returns:
+        list[dict]: The prediction results.
+    """
+    model.eval()
+    results = []
+    dataset = data_loader.dataset
+    prog_bar = mmcv.ProgressBar(len(dataset))
+    for i, data in enumerate(data_loader):
+        with torch.no_grad():
+            result = model(return_loss=False, rescale=True, **data)
+
+        results.extend([result.squeeze(dim=0).cpu().numpy().astype(np.uint8)])
+
+        batch_size = len(result)
+        for _ in range(batch_size):
+            prog_bar.update()
+        if i == 10:
+            break
+    return results
 
 if __name__ == '__main__':
     main()
